@@ -1,3 +1,5 @@
+/*Austin Rush - CS310 Indv. Project 2 - Database Programming - 10/9/2022*/
+
 package edu.jsu.mcis.cs310;
 
 import java.sql.*;
@@ -15,7 +17,6 @@ public class Database {
     public Database(String username, String password, String address) {
         
         this.connection = openConnection(username, password, address);
-        
     }
     
     /* PUBLIC METHODS */
@@ -25,9 +26,22 @@ public class Database {
         String result = null;
         
         // INSERT YOUR CODE HERE
-        
+        String query = "SELECT * FROM section WHERE termid = ? AND subjectid = ? AND num = ?";
+        try{
+            PreparedStatement ps = connection.prepareStatement(query);
+            ps.setInt(1, termid);
+            ps.setString(2, subjectid);
+            ps.setString(3, num);
+            
+            ResultSet rs = ps.executeQuery();
+            
+            result = getResultSetAsJSON(rs);
+            
+            rs.close();
+        }
+        catch (Exception e) { e.printStackTrace(); }
+                
         return result;
-        
     }
     
     public int register(int studentid, int termid, int crn) {
@@ -35,9 +49,20 @@ public class Database {
         int result = 0;
         
         // INSERT YOUR CODE HERE
+        String query = "INSERT INTO registration (studentid, termid, crn) VALUES (?, ?, ?)";
         
+        try{
+            PreparedStatement ps = connection.prepareStatement(query);
+            ps.setInt(1, studentid);
+            ps.setInt(2, termid);
+            ps.setInt(3, crn);
+            
+            result = ps.executeUpdate();
+        }
+        
+        catch (Exception e) { e.printStackTrace();}
+                
         return result;
-        
     }
 
     public int drop(int studentid, int termid, int crn) {
@@ -45,9 +70,20 @@ public class Database {
         int result = 0;
         
         // INSERT YOUR CODE HERE
+        String query = "DELETE FROM registration WHERE studentid = ? AND termid = ? AND crn = ?";
         
+        try{
+            PreparedStatement ps = connection.prepareStatement(query);
+            ps.setInt(1, studentid);
+            ps.setInt(2, termid);
+            ps.setInt(3, crn);
+            
+            result = ps.executeUpdate();
+        }
+        
+        catch (Exception e) { e.printStackTrace();}
+                
         return result;
-        
     }
     
     public int withdraw(int studentid, int termid) {
@@ -55,9 +91,18 @@ public class Database {
         int result = 0;
         
         // INSERT YOUR CODE HERE
+        String query = "DELETE FROM registration WHERE studentid = ? AND termid = ?";
+        
+        try{
+            PreparedStatement ps = connection.prepareStatement(query);
+            ps.setInt(1, studentid);
+            ps.setInt(2, termid);
+            
+            result = ps.executeUpdate();
+        }
+        catch (Exception e) { e.printStackTrace();}
         
         return result;
-        
     }
     
     public String getScheduleAsJSON(int studentid, int termid) {
@@ -65,9 +110,23 @@ public class Database {
         String result = null;
         
         // INSERT YOUR CODE HERE
+        String query = "SELECT * FROM registration r JOIN section s on s.crn = r.crn"
+                + "     WHERE r.studentid = ? AND r.termid = ?";
+        
+        try{
+            PreparedStatement ps = connection.prepareStatement(query);
+            ps.setInt(1,studentid);
+            ps.setInt(2, termid);
+            
+            ResultSet rs = ps.executeQuery();
+            
+            result = getResultSetAsJSON(rs);
+            
+            rs.close();
+        }
+        catch (Exception e) { e.printStackTrace();}
         
         return result;
-        
     }
     
     public int getStudentId(String username) {
@@ -88,15 +147,12 @@ public class Database {
                 
                 if (resultset.next())
                     
-                    id = resultset.getInt("id");
-                
+                    id = resultset.getInt("id");   
             }
-            
         }
         catch (Exception e) { e.printStackTrace(); }
         
         return id;
-        
     }
     
     public boolean isConnected() {
@@ -108,12 +164,10 @@ public class Database {
             if ( !(connection == null) )
                 
                 result = !(connection.isClosed());
-            
         }
         catch (Exception e) { e.printStackTrace(); }
         
         return result;
-        
     }
     
     /* PRIVATE METHODS */
@@ -134,14 +188,10 @@ public class Database {
                 // System.err.println("Connecting to " + url + " ...");
 
                 c = DriverManager.getConnection(url, u, p);
-
             }
             catch (Exception e) { e.printStackTrace(); }
-        
         }
-        
         return c;
-        
     }
     
     private String getResultSetAsJSON(ResultSet resultset) {
@@ -149,27 +199,42 @@ public class Database {
         String result;
         
         /* Create JSON Containers */
-        
         JSONArray json = new JSONArray();
         JSONArray keys = new JSONArray();
         
         try {
             
             /* Get Metadata */
-        
             ResultSetMetaData metadata = resultset.getMetaData();
             int columnCount = metadata.getColumnCount();
             
             // INSERT YOUR CODE HERE
-        
+             for (int i = 1; i <= columnCount; ++i) {
+                keys.add(metadata.getColumnLabel(i));
+            }
+            
+            /* Get ResultSet Data */
+            while(resultset.next()) {
+                
+                /* Create JSON Container for New Row */
+                JSONObject row = new JSONObject();
+                
+                /* Get Row Data */
+                for (int i = 1; i <= columnCount; ++i) {
+                    
+                    /* Get Value; Pair with Key */
+                    Object value = resultset.getObject(i);
+                    row.put(keys.get(i - 1), String.valueOf(value));
+                }
+                
+                /* Add Row Data to Collection */
+                json.add(row);
+            }
         }
         catch (Exception e) { e.printStackTrace(); }
         
         /* Encode JSON Data and Return */
-        
         result = JSONValue.toJSONString(json);
-        return result;
-        
+        return result;   
     }
-    
 }
